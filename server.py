@@ -30,57 +30,61 @@ import os
 
 class MyWebServer(socketserver.BaseRequestHandler):
 
-    def unsecure_formate(self):
+    def unsecure_format(self):
         directory = self.path.split("/")
         if ".." in directory:
             return True
         else:
             return False
 
-    def send_status_code(self, case):
-        match case:
-            case 405:
-                msg = self.protocol+ " 405 Method Not Allowed\r\n"
-                self.request.sendall(bytearray(msg,'utf-8'))
-                return
-            case 404:
-                msg = self.protocol + " 404 Not Found\r\n"
-                self.request.sendall(bytearray(msg,'utf-8'))
-                return
-            case 301:
-                msg = self.protocol + " 301 Moved Permanently\r\n"
-                self.request.sendall(bytearray(msg,'utf-8'))
-                return
-            case 200:
-                content_type = self.url_path.split(".")[-1]
-                mime_type = "Content-type: text/"+content_type
-                file = open(self.url_path, "r")
-                content = file.read()
-                msg = self.protocol +" 200 OK\r\n" + mime_type +"\n\n" + content
-                self.request.sendall(bytearray(msg,'utf-8'))
-                file.close()
-                return
+    def send_status_code(self, status):
+        if status == 405:
+            msg = self.protocol+ " 405 Method Not Allowed\r\n"
+            self.request.sendall(bytearray(msg,'utf-8'))
+            return
+        elif status == 404:
+            msg = self.protocol + " 404 Not Found\r\n"
+            self.request.sendall(bytearray(msg,'utf-8'))
+            return
+        elif status == 301:
+            location ="Location: http://" + str(HOST) + ":" + str(PORT) + self.path + "\n\n"
+            msg = self.protocol + " 301 Moved Permanently\r\n" + location
+            self.request.sendall(bytearray(msg,'utf-8'))
+            return
+        elif status == 200:
+            content_type = self.url_path.split(".")[-1]
+            mime_type = "Content-type: text/"+content_type
+            file = open(self.url_path, "r")
+            content = file.read()
+            msg = self.protocol +" 200 OK\r\n" + mime_type +"\n\n" + content
+            self.request.sendall(bytearray(msg,'utf-8'))
+            file.close()
+            return
 
 
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
+        # print ("Got a request of: %s\n" % self.data)
         # self.request.sendall(bytearray("OK",'utf-8'))
         if self.data == b"":
-            self.send_status_code(404)
+            return
+
         self.request_method, self.path, self.protocol = self.data.split(b"\r\n")[0].decode('utf-8').split(" ")
 
-        if "/www" not in self.path:
+        if "./www" not in self.path:
             self.url_path = "./www" + self.path
+        else:
+            self.url_path = self.path
 
         if self.request_method == "GET":
-            if not os.path.exists(self.url_path) or self.unsecure_formate():
+
+
+            if not os.path.exists(self.url_path) or self.unsecure_format():
                 self.send_status_code(404)
 
             elif os.path.isdir(self.url_path) and self.url_path[-1] != "/":
                 self.send_status_code(301)
-
             else:
                 if os.path.isdir(self.url_path):
                     self.url_path += "index.html"
