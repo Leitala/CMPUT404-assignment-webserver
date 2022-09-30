@@ -78,8 +78,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.url_path = self.path
 
         if self.request_method == "GET":
-
-
             if not os.path.exists(self.url_path) or self.unsecure_format():
                 self.send_status_code(404)
 
